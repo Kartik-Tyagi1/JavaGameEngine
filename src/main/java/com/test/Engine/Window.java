@@ -1,5 +1,6 @@
 package com.test.Engine;
 
+import com.test.Util.Time;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -12,11 +13,10 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 public class Window {
     int width, height;
     String title;
-    private float r, g, b, a;
-    private boolean fadeToBlack = false;
+    public float r, g, b, a;
     private long glfwWindow;
-
     private static Window window = null;
+    private static Scene currentScene = null;
 
     private Window() {
         this.width = 1920;
@@ -33,6 +33,20 @@ public class Window {
             Window.window = new Window();
         }
         return Window.window;
+    }
+
+    public static void changeScene(int newScene) {
+        switch (newScene) {
+            case 0:
+                currentScene = new LevelEditorScene();
+                break;
+            case 1:
+                currentScene = new LevelScene();
+                break;
+            default:
+                assert false: "Unknown Scene: " + newScene;
+                break;
+        }
     }
 
     public void run() {
@@ -93,9 +107,15 @@ public class Window {
         // creates the GLCapabilities instance and makes the OpenGL
         // bindings available for use.
         GL.createCapabilities();
+
+        Window.changeScene(0);
     }
 
     public void loop() {
+        float beginTime = Time.getTime();
+        float endTime;
+        float deltaTime = -1.0f;
+
         // Set the clear color
         glClearColor(r, g, b, a);
 
@@ -108,20 +128,22 @@ public class Window {
 
             glClearColor(r, g, b, a);
 
-            if(fadeToBlack) {
-                r = Math.max(r - 0.01f, 0);
-                g = Math.max(g - 0.01f, 0);
-                b = Math.max(b - 0.01f, 0);
-            }
-
-            if(KeyListener.isKeyPressed(GLFW_KEY_SPACE)) {
-                fadeToBlack = true;
-                System.out.println("fade pressed");
-            }
-
             // Poll for window events. The key callback above will only be
             // invoked during this call.
             glfwPollEvents();
+
+            if(deltaTime >= 0) {
+                currentScene.Update(deltaTime);
+            }
+
+            // Set the end time of the current frame and
+            endTime = Time.getTime();
+
+            // Get the deltaTime, which will be the time elapsed from the beginning of one frame to the end of it
+            deltaTime = endTime - beginTime;
+
+            // Reset begin time for the next frame
+            beginTime = endTime;
         }
     }
 
